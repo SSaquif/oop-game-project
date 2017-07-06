@@ -5,6 +5,7 @@ var GAME_HEIGHT = 500;
 var ENEMY_WIDTH = 75;
 var ENEMY_HEIGHT = 156;
 var MAX_ENEMIES = 3;
+var MAX_LIVES = 3;
 
 var PLAYER_WIDTH = 75;
 var PLAYER_HEIGHT = 54;
@@ -12,10 +13,13 @@ var PLAYER_HEIGHT = 54;
 // These two constants keep us from using "magic numbers" in our code
 var LEFT_ARROW_CODE = 37;
 var RIGHT_ARROW_CODE = 39;
+var SPACE_ARROW_CODE = 32;
 
 // These two constants allow us to DRY
 var MOVE_LEFT = 'left';
 var MOVE_RIGHT = 'right';
+
+
 
 // Preload game images
 var images = {};
@@ -30,8 +34,15 @@ var images = {};
 
 
 // This section is where you will be doing most of your coding
-class Enemy {
+class Entity {
+    render(ctx)
+    {
+        ctx.drawImage(this.sprite, this.x, this.y);
+    }
+}
+class Enemy extends Entity {
     constructor(xPos) {
+        super();
         this.x = xPos;
         this.y = -ENEMY_HEIGHT;
         this.sprite = images['enemy.png'];
@@ -43,17 +54,15 @@ class Enemy {
     update(timeDiff) {
         this.y = this.y + timeDiff * this.speed;
     }
-
-    render(ctx) {
-        ctx.drawImage(this.sprite, this.x, this.y);
-    }
 }
 
-class Player {
+class Player extends Entity {
     constructor() {
+        super();
         this.x = 2 * PLAYER_WIDTH;
         this.y = GAME_HEIGHT - PLAYER_HEIGHT - 10;
         this.sprite = images['player.png'];
+        this.lives = MAX_LIVES;
     }
 
     // This method is called by the game engine when left/right arrows are pressed
@@ -65,16 +74,26 @@ class Player {
             this.x = this.x + PLAYER_WIDTH;
         }
     }
-
-    render(ctx) {
-        ctx.drawImage(this.sprite, this.x, this.y);
-    }
 }
-
-
-
-
-
+/*class Sound {
+    constructor(src)
+    {
+        this.sound = document.createElement("audio");
+        this.sound.src = src;
+        this.sound.setAttribute("preload", "auto");
+        this.sound.setAttribute("controls", "none");
+        this.sound.style.display = "none";
+        document.body.appendChild(this.sound);
+    }
+    play()
+    {
+        this.sound.play();
+    }
+    stop()
+    {
+        this.sound.pause();
+    }
+}*/
 /*
 This section is a tiny game engine.
 This engine will use your Enemy and Player classes to create the behavior of the game.
@@ -84,7 +103,8 @@ class Engine {
     constructor(element) {
         // Setup the player
         this.player = new Player();
-
+        this.isRestart = 0;
+        //this.collisionSound = new Sound("/decodeMTL/oopGame/oop-game-project/sounds/sfx_exp_medium1.wav");
         // Setup enemies, making sure there are always three
         this.setupEnemies();
 
@@ -120,7 +140,7 @@ class Engine {
 
         var enemySpot;
         // Keep looping until we find a free enemy spot at random
-        while (!enemySpot || this.enemies[enemySpot]) {
+        while (this.enemies[enemySpot]) {
             enemySpot = Math.floor(Math.random() * enemySpots);
         }
 
@@ -140,6 +160,11 @@ class Engine {
             else if (e.keyCode === RIGHT_ARROW_CODE) {
                 this.player.move(MOVE_RIGHT);
             }
+            else if (e.keyCode === SPACE_ARROW_CODE && this.isRestart)
+            {
+                //this.score = 0;
+                gameEngine.gameLoop();
+            } 
         });
 
         this.gameLoop();
@@ -150,7 +175,6 @@ class Engine {
     During each execution of the function, we will update the positions of all game entities
     It's also at this point that we will check for any collisions between the game entities
     Collisions will often indicate either a player death or an enemy kill
-
     In order to allow the game objects to self-determine their behaviors, gameLoop will call the `update` method of each entity
     To account for the fact that we don't always have 60 frames per second, gameLoop will send a time delta argument to `update`
     You should use this parameter to scale your update appropriately
@@ -185,13 +209,21 @@ class Engine {
             this.ctx.font = 'bold 30px Impact';
             this.ctx.fillStyle = '#ffffff';
             this.ctx.fillText(this.score + ' GAME OVER', 5, 30);
+            document.addEventListener('keydown', e => {
+            if (e.keyCode === SPACE_ARROW_CODE)
+            {
+                this.score = 0;
+                this.player.lives = MAX_LIVES;
+                this.isRestart = 1;
+            }
+        });
         }
         else {
             // If player is not dead, then draw the score
             this.ctx.font = 'bold 30px Impact';
             this.ctx.fillStyle = '#ffffff';
             this.ctx.fillText(this.score, 5, 30);
-
+            this.ctx.fillText('LIFE:' + this.player.lives, 150, 30);
             // Set the time marker and redraw
             this.lastFrame = Date.now();
             requestAnimationFrame(this.gameLoop);
@@ -200,13 +232,36 @@ class Engine {
 
     isPlayerDead() {
         // TODO: fix this function!
+        for(var i = 0; i < this.enemies.length; i++)
+        {
+            console.log(this.enemies[i]);
+            // console.log(this.enemies[i].x);
+            // console.log(this.player.x);
+            if(this.enemies[i] !== undefined)
+            {
+            if (((this.player.x + PLAYER_WIDTH) > (this.enemies[i].x))
+				&& ((this.player.x) < (this.enemies[i].x + ENEMY_WIDTH))
+				&& ((this.player.y + PLAYER_HEIGHT) > (this.enemies[i].y))
+				&& ((this.player.y) < (this.enemies[i].y + ENEMY_HEIGHT))) //player is above of enemy
+				{
+					//this.collisionSound.play();
+					if(this.player.lives === 0)
+					{
+						return true;
+					}
+					else
+					{
+					    console.log(this.player.lives);
+					    this.player.lives = this.player.lives - 1;
+					    console.log(this.player.lives);
+					    return false;
+					}
+				}
+            }
+        }
         return false;
     }
 }
-
-
-
-
 
 // This section will start the game
 var gameEngine = new Engine(document.getElementById('app'));
