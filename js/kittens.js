@@ -5,7 +5,7 @@ var GAME_HEIGHT = 500;
 var ENEMY_WIDTH = 75;
 var ENEMY_HEIGHT = 156;
 var MAX_ENEMIES = 3;
-var MAX_LIVES = 3;
+var MAX_LIVES = 500;
 
 var PLAYER_WIDTH = 75;
 var PLAYER_HEIGHT = 54;
@@ -40,6 +40,7 @@ class Entity {
         ctx.drawImage(this.sprite, this.x, this.y);
     }
 }
+
 class Enemy extends Entity {
     constructor(xPos) {
         super();
@@ -68,14 +69,14 @@ class Player extends Entity {
     // This method is called by the game engine when left/right arrows are pressed
     move(direction) {
         if (direction === MOVE_LEFT && this.x > 0) {
-            this.x = this.x - PLAYER_WIDTH;
+            this.x = this.x - 1;
         }
         else if (direction === MOVE_RIGHT && this.x < GAME_WIDTH - PLAYER_WIDTH) {
-            this.x = this.x + PLAYER_WIDTH;
+            this.x = this.x + 1;
         }
     }
 }
-/*class Sound {
+class Sound {
     constructor(src)
     {
         this.sound = document.createElement("audio");
@@ -93,7 +94,7 @@ class Player extends Entity {
     {
         this.sound.pause();
     }
-}*/
+}
 /*
 This section is a tiny game engine.
 This engine will use your Enemy and Player classes to create the behavior of the game.
@@ -104,7 +105,8 @@ class Engine {
         // Setup the player
         this.player = new Player();
         this.isRestart = 0;
-        //this.collisionSound = new Sound("/decodeMTL/oopGame/oop-game-project/sounds/sfx_exp_medium1.wav");
+        this.bgSound = new Sound("sounds/Game-Menu_Looping.mp3")
+        this.collisionSound = new Sound("sounds/sfx_exp_medium1.wav");
         // Setup enemies, making sure there are always three
         this.setupEnemies();
 
@@ -125,6 +127,7 @@ class Engine {
      At any point in time there can be at most MAX_ENEMIES enemies otherwise the game would be impossible
      */
     setupEnemies() {
+        console.log(this.enemies);
         if (!this.enemies) {
             this.enemies = [];
         }
@@ -151,6 +154,7 @@ class Engine {
     start() {
         this.score = 0;
         this.lastFrame = Date.now();
+        this.bgSound.play();
 
         // Listen for keyboard left/right and update the player
         document.addEventListener('keydown', e => {
@@ -181,9 +185,10 @@ class Engine {
      */
     gameLoop() {
         // Check how long it's been since last frame
+        
         var currentFrame = Date.now();
         var timeDiff = currentFrame - this.lastFrame;
-
+        //this.bgSound.play();
         // Increase the score!
         this.score += timeDiff;
 
@@ -242,11 +247,12 @@ class Engine {
             if (((this.player.x + PLAYER_WIDTH) > (this.enemies[i].x))
 				&& ((this.player.x) < (this.enemies[i].x + ENEMY_WIDTH))
 				&& ((this.player.y + PLAYER_HEIGHT) > (this.enemies[i].y))
-				&& ((this.player.y) < (this.enemies[i].y + ENEMY_HEIGHT))) //player is above of enemy
+				&& ((this.player.y) < (this.enemies[i].y + ENEMY_HEIGHT/4))) //player is above of enemy
 				{
-					//this.collisionSound.play();
+					this.collisionSound.play();
 					if(this.player.lives === 0)
 					{
+					    this.bgSound.stop();
 						return true;
 					}
 					else
